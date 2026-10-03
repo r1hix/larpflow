@@ -1,0 +1,54 @@
+{
+  "developer": {
+    "name": "Muhammad Shaf",
+    "handle": "r1hix",
+    "github_url": "https://github.com/r1hix",
+    "twitter_handle": "rihixyt",
+    "twitter_url": "https://x.com/rihixyt",
+    "reddit_username": "RIHIx_",
+    "reddit_url": "https://www.reddit.com/user/RIHIx_/",
+    "discord_handle": "rihix",
+    "linkedin_slug": "theshaf",
+    "linkedin_url": "https://www.linkedin.com/in/theshaf/",
+    "studies": "BS Computer Science student",
+    "primary_stacks": [
+      "C (memory management, buffers, allocators)",
+      "Native Win32 and cross-platform minimal desktop tools",
+      "Swift / WidgetKit iOS apps",
+      "Raylib and game development (2D mechanics, collisions, physics loops)",
+      "Systems and architecture (relational schemas, backend APIs)",
+      "Automation and tooling (Python, shell scripts, workflows)"
+    ],
+    "interests": "systems-level, low-level, minimal, cross-platform native development",
+    "never_claim": [
+      "benchmark numbers that are not in the repo data",
+      "user counts, stars or downloads that are not in the repo data",
+      "work experience that is not in the LinkedIn profile text"
+    ],
+    "tone_guardrails": {
+      "do_not_use": [
+        "In today's fast-paced world",
+        "thrilled to share",
+        "excited to announce",
+        "game changer",
+        "unleashing the power",
+        "unleash",
+        "revolutionary",
+        "revolutionizing",
+        "delve",
+        "delving",
+        "let's dive in",
+        "dive into",
+        "it's crucial to",
+        "fast-forward to",
+        "a testament to",
+        "navigating the",
+        "seamlessly",
+        "tapestry",
+        "fosters"
+      ],
+      "preferred_style": "direct, technically concrete, analytical, slightly witty, builder-centric, raw developer voice"
+    }
+  }
+}
+

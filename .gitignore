@@ -1,0 +1,29 @@
+# Environment & Secrets (NEVER COMMIT)
+.env
+.env.*
+*.env
+!.env.example
+*.key
+*.pem
+
+
+# Python & Virtual Environments
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Local Database & Storage
+storage/*.sqlite
+storage/*.sqlite-journal
+storage/profile_README.md
+
+# Graphify & Editor Artifacts
+graphify-out/
+.DS_Store
+*.swp
+

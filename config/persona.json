@@ -13,7 +13,6 @@
     "studies": "BS Computer Science student",
     "primary_stacks": [
       "C (memory management, buffers, allocators)",
-      "Native Win32 and cross-platform minimal desktop tools",
       "Swift / WidgetKit iOS apps",
       "Raylib and game development (2D mechanics, collisions, physics loops)",
       "Systems and architecture (relational schemas, backend APIs)",
@@ -51,4 +50,3 @@
     }
   }
 }
-

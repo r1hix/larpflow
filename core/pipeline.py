@@ -13,7 +13,7 @@ def parse_run_args(text):
     return parts
 
 
-def make_drafts(repo, problem="", solution="", commit_count=10, post_type="auto"):
+def make_drafts(repo, problem="", solution="", commit_count=10, post_type="auto", media_path=""):
     """Agent 1 + Agent 2. Returns (draft_id, repo_info, drafts)."""
     info = tool_github.inspect_repo(repo, commit_count=commit_count)
     past = db.past_for_repo(info["full_name"])
@@ -36,6 +36,10 @@ def make_drafts(repo, problem="", solution="", commit_count=10, post_type="auto"
             solution = f"Implementation details and trade-offs of {repo}"
 
     d = drafts.generate(info, problem, solution, past, post_type=post_type)
+    detected_img = media_path or _find_image(repo)
+    if detected_img and (not d.visual_asset or not d.visual_asset.startswith("http")):
+        d.visual_asset = str(detected_img)
+
     draft_id = db.save_draft(info["full_name"], problem, solution, d.model_dump())
     return draft_id, info, d
 
@@ -56,52 +60,87 @@ def make_profile_readme():
 import re
 from pathlib import Path
 
-def _find_image(repo):
+def _find_image(repo, custom_media=None):
+    """Dynamically locates screenshots or gameplay media for a repository across CWD and project paths."""
+    if custom_media and Path(custom_media).exists():
+        return str(Path(custom_media).resolve())
+
     short_repo = repo.split("/")[-1]
-    candidates = [
-        config.STORAGE_DIR / f"gameplay_{short_repo}.png",
-        config.STORAGE_DIR / f"{short_repo}.png",
-        config.STORAGE_DIR / "drafts" / f"{short_repo}.png",
-        Path.home() / f"Desktop/projects/RayLib-Games/{short_repo}/gameplay.png",
+    image_names = [
+        f"gameplay_{short_repo}",
+        f"{short_repo}",
+        "gameplay",
+        "gameplay_window",
+        "screenshot",
+        "preview",
+        "demo",
+        "thumbnail",
+        "cover",
     ]
-    for c in candidates:
-        if c.exists():
-            return str(c)
+    exts = [".png", ".jpg", ".jpeg", ".webp", ".gif"]
+
+    search_dirs = [
+        Path.cwd(),
+        Path.cwd() / "assets",
+        Path.cwd() / "images",
+        Path.cwd() / "docs",
+        config.STORAGE_DIR,
+        config.STORAGE_DIR / "drafts",
+        Path.home() / "Desktop" / "projects" / "RayLib-Games" / short_repo,
+        Path.home() / "Desktop" / "projects" / short_repo,
+    ]
+
+    for d in search_dirs:
+        if not d.exists():
+            continue
+        for name in image_names:
+            for ext in exts:
+                candidate = d / f"{name}{ext}"
+                if candidate.exists():
+                    return str(candidate.resolve())
+
     return None
 
 def _fill(text, url):
     return text.replace(drafts.PLACEHOLDER, url)
 
 
-def _post_x(d, url):
+def _clean_text(text, url):
+    """Replaces placeholders and strips any prompt visual cues like (Visual: ...) or [Screenshot: ...]."""
+    filled = _fill(text, url)
+    cleaned = re.sub(r"\n*[\(\[](?:Visual|Screenshot|Image|GIF|Video):[^)\]]+[\)\]]", "", filled, flags=re.I)
+    return cleaned.strip()
+
+
+def _post_x(d, url, media_path=None):
     repo = url.replace("https://github.com/", "")
-    img = _find_image(repo)
-    clean_tweets = [re.sub(r"\n*\(Visual:[^)]+\)", "", _fill(t, url)).strip() for t in d.tweets]
+    img = media_path or _find_image(repo, getattr(d, "visual_asset", None))
+    clean_tweets = [_clean_text(t, url) for t in d.tweets]
     ids = tool_x.post_thread(clean_tweets, media_path=img)
     return ids[0], tool_x.thread_url(ids[0])
 
 
-def _post_reddit(d, url):
-    return tool_reddit.post(d.reddit_subreddit, d.reddit_title, d.reddit_body)
+def _post_reddit(d, url, media_path=None):
+    return tool_reddit.post(d.reddit_subreddit, _clean_text(d.reddit_title, url), _clean_text(d.reddit_body, url))
 
 
-def _post_linkedin(d, url):
-    return tool_linkedin.post(_fill(d.linkedin, url))
+def _post_linkedin(d, url, media_path=None):
+    return tool_linkedin.post(_clean_text(d.linkedin, url))
 
 
-def _post_discord(d, url):
+def _post_discord(d, url, media_path=None):
     repo = url.replace("https://github.com/", "")
-    img = _find_image(repo)
-    return tool_discord.post(d.discord_title, d.discord_body, url, media_path=img)
+    img = media_path or _find_image(repo, getattr(d, "visual_asset", None))
+    return tool_discord.post(_clean_text(d.discord_title, url), _clean_text(d.discord_body, url), url, media_path=img)
 
 
-def _post_github(d, url):
+def _post_github(d, url, media_path=None):
     repo_name = url.replace("https://github.com/", "")
-    return tool_github.update_readme(repo_name, d.github_readme_section)
+    return tool_github.update_readme(repo_name, _clean_text(d.github_readme_section, url))
 
 
-def _post_facebook(d, url):
-    return tool_facebook.post(_fill(d.facebook, url))
+def _post_facebook(d, url, media_path=None):
+    return tool_facebook.post(_clean_text(d.facebook, url))
 
 
 PLATFORMS = [
@@ -116,9 +155,10 @@ PLATFORMS = [
 
 
 
-def dispatch(draft_id, target_platforms=None):
+def dispatch(draft_id, target_platforms=None, media_path=None):
     """Posts an approved draft. Safe to run again: platforms that worked are skipped.
     target_platforms can be a list or set of platform names (e.g. ['x', 'linkedin']). If None, posts to all configured.
+    media_path overrides/supplies explicit image attachment for media-capable platforms.
     """
     row = db.get_draft(draft_id)
     if row is None:
@@ -132,6 +172,8 @@ def dispatch(draft_id, target_platforms=None):
     results = []
 
     target_set = {p.lower().strip() for p in target_platforms} if target_platforms else None
+    repo = row["repo"]
+    active_img = media_path or getattr(d, "visual_asset", None) or _find_image(repo)
 
     for name, is_ready, post_fn in PLATFORMS:
         if target_set is not None and name not in target_set:
@@ -144,7 +186,7 @@ def dispatch(draft_id, target_platforms=None):
             results.append({"platform": name, "state": "dry", "detail": "would post (DRY_RUN is on)"})
         else:
             try:
-                post_id, link = post_fn(d, url)
+                post_id, link = post_fn(d, url, media_path=active_img)
                 db.log_post(draft_id, name, True, post_id, link)
                 results.append({"platform": name, "state": "ok", "detail": link or post_id})
             except Exception as e:
@@ -162,6 +204,7 @@ def dispatch(draft_id, target_platforms=None):
         status = "approved"
     db.set_status(draft_id, status)
     return results
+
 
 
 def format_audit(results):

@@ -7,8 +7,15 @@ python -m core.cli history
 python -m core.cli readme
 """
 import argparse
+import sys
+from pathlib import Path
 
-from . import config, db, drafts, pipeline
+# Ensure project root is in sys.path even when executed outside the repo root
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from core import config, db, drafts, pipeline
 from tools import tool_discord, tool_facebook, tool_github, tool_linkedin, tool_reddit, tool_x
 
 
@@ -36,6 +43,7 @@ def cmd_run(args):
     repo = raw_repo
     problem = args.problem or raw_prob
     solution = args.solution or raw_sol
+    media = args.image or ""
 
     print(f"Working... (inspecting GitHub '{repo}' with {args.commits} commits, type='{args.type}')...")
     draft_id, info, d = pipeline.make_drafts(
@@ -44,6 +52,7 @@ def cmd_run(args):
         solution=solution,
         commit_count=args.commits,
         post_type=args.type,
+        media_path=media,
     )
     preview_text = drafts.render_preview(draft_id, info["full_name"], d)
     print(preview_text)
@@ -62,7 +71,7 @@ def cmd_run(args):
     except Exception:
         pass
 
-    print(f"\nTo post it: python -m core.cli send {draft_id}")
+    print(f"\nTo post it: larpflow send {draft_id} --yes (or: python -m core.cli send {draft_id})")
 
 
 
@@ -88,6 +97,7 @@ def cmd_send(args):
     mode = "DRY RUN" if config.DRY_RUN else "LIVE (posts for real)"
     platforms = [p.strip() for p in args.platforms.split(",")] if args.platforms else None
     target_str = f"to {args.platforms}" if args.platforms else "to all platforms"
+    media = args.image or ""
     
     if not args.yes:
         answer = input(f"Send draft #{args.draft_id} for {row['repo']} {target_str} in {mode} mode? Type yes: ")
@@ -96,7 +106,7 @@ def cmd_send(args):
     else:
         print(f"Sending draft #{args.draft_id} {target_str} in {mode} mode...")
 
-    print(pipeline.format_audit(pipeline.dispatch(args.draft_id, target_platforms=platforms)))
+    print(pipeline.format_audit(pipeline.dispatch(args.draft_id, target_platforms=platforms, media_path=media)))
 
 
 def cmd_history(_args):
@@ -131,6 +141,7 @@ def main():
     )
     run.add_argument("--problem", help="custom motivation, problem, or bottleneck context", default="")
     run.add_argument("--solution", help="custom fix, architectural solution, or takeaways", default="")
+    run.add_argument("--image", "-i", default="", help="custom image path for media attachments (e.g. screenshot or gameplay)")
     run.set_defaults(fn=cmd_run)
 
 
@@ -142,6 +153,7 @@ def main():
     send = sub.add_parser("send", help="post a saved draft")
     send.add_argument("draft_id", type=int)
     send.add_argument("--platforms", "-p", help="comma-separated list: x,linkedin,facebook,reddit,discord,github", default="")
+    send.add_argument("--image", "-i", default="", help="custom image path for media attachments (overrides auto-detection)")
     send.add_argument("--yes", "-y", action="store_true", help="skip confirmation prompt")
     send.set_defaults(fn=cmd_send)
 

@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "larpflow"
+version = "1.0.0"
+description = "Dev-log generator and multi-platform social syndication engine"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "python-telegram-bot>=21.6",
+    "PyGithub>=2.2.0",
+    "praw>=7.7.1",
+    "tweepy>=4.14.0",
+    "requests>=2.31.0",
+    "openai>=1.14.0",
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.6.0",
+    "Pillow>=10.0.0",
+]
+
+[project.scripts]
+larpflow = "core.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "tools*"]

@@ -8,15 +8,6 @@ def configured():
     return all([config.REDDIT_CLIENT_ID, config.REDDIT_CLIENT_SECRET, config.REDDIT_USERNAME, config.REDDIT_PASSWORD])
 
 
-"""Reddit posting with PRAW."""
-import praw
-
-from core import config
-
-
-def configured():
-    return all([config.REDDIT_CLIENT_ID, config.REDDIT_CLIENT_SECRET, config.REDDIT_USERNAME, config.REDDIT_PASSWORD])
-
 
 def post(subreddit, title, body, flair_text=None):
     """Makes one text post, automatically choosing or matching a flair if required. Returns (post_id, url)."""

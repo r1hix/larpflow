@@ -9,8 +9,7 @@ python -m core.cli readme
 import argparse
 
 from . import config, db, drafts, pipeline
-from tools import tool_discord, tool_github, tool_linkedin, tool_reddit, tool_x
-
+from tools import tool_discord, tool_facebook, tool_github, tool_linkedin, tool_reddit, tool_x
 
 
 def cmd_doctor(_args):
@@ -25,16 +24,55 @@ def cmd_doctor(_args):
     print(f"X                  : {mark(tool_x.configured())}")
     print(f"Reddit             : {mark(tool_reddit.configured())}  subs={config.REDDIT_ALLOWED_SUBS}")
     print(f"LinkedIn           : {mark(tool_linkedin.configured())}")
+    print(f"Facebook           : {mark(tool_facebook.configured())}")
     print(f"Discord            : {mark(tool_discord.configured())}")
     print(f"LinkedIn profile   : {mark(config.load_linkedin_profile())}  (config/linkedin_profile.md)")
 
 
+
 def cmd_run(args):
-    repo, problem, solution = pipeline.parse_run_args(args.text)
-    print("Working... (reads GitHub, then asks the model)")
-    draft_id, info, d = pipeline.make_drafts(repo, problem, solution)
-    print(drafts.render_preview(draft_id, info["full_name"], d))
-    print(f"Saved as draft #{draft_id}. To post it: python -m core.cli send {draft_id}")
+    # Support either positional string "repo | prob | sol" or explicit CLI flags
+    raw_repo, raw_prob, raw_sol = pipeline.parse_run_args(args.text)
+    repo = raw_repo
+    problem = args.problem or raw_prob
+    solution = args.solution or raw_sol
+
+    print(f"Working... (inspecting GitHub '{repo}' with {args.commits} commits, type='{args.type}')...")
+    draft_id, info, d = pipeline.make_drafts(
+        repo,
+        problem=problem,
+        solution=solution,
+        commit_count=args.commits,
+        post_type=args.type,
+    )
+    preview_text = drafts.render_preview(draft_id, info["full_name"], d)
+    print(preview_text)
+
+    # Auto-export draft as an editable Markdown file and open it in the editor
+    draft_dir = config.STORAGE_DIR / "drafts"
+    draft_dir.mkdir(parents=True, exist_ok=True)
+    draft_file = draft_dir / f"draft_{draft_id}_{repo.replace('/', '_')}.md"
+    draft_file.write_text(preview_text, encoding="utf-8")
+    print(f"\nSaved draft to {draft_file}")
+
+    try:
+        import subprocess
+        subprocess.run(["open", str(draft_file)], check=False)
+        print(f"Opened {draft_file.name} in your editor.")
+    except Exception:
+        pass
+
+    print(f"\nTo post it: python -m core.cli send {draft_id}")
+
+
+
+
+def cmd_show(args):
+    row = db.get_draft(args.draft_id)
+    if row is None:
+        raise SystemExit(f"No draft #{args.draft_id}")
+    d = drafts.Drafts(**row["drafts"])
+    print(drafts.render_preview(args.draft_id, row["repo"], d))
 
 
 def cmd_repos(_args):
@@ -80,18 +118,39 @@ def main():
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("doctor", help="show which keys are filled in").set_defaults(fn=cmd_doctor)
     sub.add_parser("repos", help="list your GitHub repos").set_defaults(fn=cmd_repos)
+    
     run = sub.add_parser("run", help="make drafts for a repo")
     run.add_argument("text", help='repo name or "repo | problem | solution"')
+    run.add_argument("--commits", "-c", type=int, default=10, help="number of recent commits to inspect (default 10)")
+    run.add_argument(
+        "--type",
+        "-t",
+        choices=["auto", "intro", "motivation", "bug", "architecture", "full_project", "tech_stack", "showcase"],
+        default="auto",
+        help="narrative focus of the post",
+    )
+    run.add_argument("--problem", help="custom motivation, problem, or bottleneck context", default="")
+    run.add_argument("--solution", help="custom fix, architectural solution, or takeaways", default="")
     run.set_defaults(fn=cmd_run)
+
+
+    
+    show = sub.add_parser("show", help="preview an existing draft by id")
+    show.add_argument("draft_id", type=int)
+    show.set_defaults(fn=cmd_show)
+
     send = sub.add_parser("send", help="post a saved draft")
     send.add_argument("draft_id", type=int)
-    send.add_argument("--platforms", "-p", help="comma-separated list: x,linkedin,reddit,discord", default="")
+    send.add_argument("--platforms", "-p", help="comma-separated list: x,linkedin,facebook,reddit,discord,github", default="")
     send.add_argument("--yes", "-y", action="store_true", help="skip confirmation prompt")
     send.set_defaults(fn=cmd_send)
+
+    
     sub.add_parser("history", help="show past drafts").set_defaults(fn=cmd_history)
     sub.add_parser("readme", help="make a new GitHub profile README").set_defaults(fn=cmd_readme)
     args = parser.parse_args()
     args.fn(args)
+
 
 
 

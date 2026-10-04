@@ -1,6 +1,7 @@
 """The flow: ingest -> draft -> (human approves) -> dispatch. Used by the bot and the CLI."""
 from . import config, db, drafts
-from tools import tool_discord, tool_github, tool_linkedin, tool_reddit, tool_x
+from tools import tool_discord, tool_facebook, tool_github, tool_linkedin, tool_reddit, tool_x
+
 
 
 def parse_run_args(text):
@@ -12,9 +13,9 @@ def parse_run_args(text):
     return parts
 
 
-def make_drafts(repo, problem="", solution=""):
+def make_drafts(repo, problem="", solution="", commit_count=10, post_type="auto"):
     """Agent 1 + Agent 2. Returns (draft_id, repo_info, drafts)."""
-    info = tool_github.inspect_repo(repo)
+    info = tool_github.inspect_repo(repo, commit_count=commit_count)
     past = db.past_for_repo(info["full_name"])
 
     # If problem/solution are omitted, infer them from the latest commit & diff
@@ -34,9 +35,10 @@ def make_drafts(repo, problem="", solution=""):
             problem = f"Core architecture and challenges in {repo}"
             solution = f"Implementation details and trade-offs of {repo}"
 
-    d = drafts.generate(info, problem, solution, past)
+    d = drafts.generate(info, problem, solution, past, post_type=post_type)
     draft_id = db.save_draft(info["full_name"], problem, solution, d.model_dump())
     return draft_id, info, d
+
 
 
 
@@ -77,13 +79,19 @@ def _post_github(d, url):
     return tool_github.update_readme(repo_name, d.github_readme_section)
 
 
+def _post_facebook(d, url):
+    return tool_facebook.post(_fill(d.facebook, url))
+
+
 PLATFORMS = [
     ("x", tool_x.configured, _post_x),
     ("reddit", tool_reddit.configured, _post_reddit),
     ("linkedin", tool_linkedin.configured, _post_linkedin),
+    ("facebook", tool_facebook.configured, _post_facebook),
     ("discord", tool_discord.configured, _post_discord),
     ("github", tool_github.configured, _post_github),
 ]
+
 
 
 

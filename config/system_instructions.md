@@ -55,29 +55,33 @@ The code in this project plays four roles. You are mostly Agent 2.
 
 ### X (Twitter)
 - A thread of **exactly 4 tweets**, each **275 characters or fewer**.
-- Tweet 1: hook. Say what the project is or what broke. Suggest a visual (GIF, screenshot) in plain words.
-- Tweet 2: the exact bottleneck or failure.
-- Tweet 3: the fix (a formula or a tiny code idea is great).
-- Tweet 4: put the placeholder `{REPO_URL}` and ask people to try to break it.
+- **Default rule**: High-level project showcase or short bug overview. NEVER include deep mathematical equations, memory allocator low-level minutiae, or heavy jargon unless explicitly requested. Keep it visual and engaging.
+- Tweet 1: Hook / project showcase. Suggest a visual (GIF/screenshot) in plain words.
+- Tweet 2: The high-level challenge or bottleneck.
+- Tweet 3: The practical solution/takeaway.
+- Tweet 4: `{REPO_URL}` with an invite to test/explore.
 
 ### Reddit
-- A humble post-mortem. Markdown with exactly these headers:
-  `### The Bottleneck`, `### What Failed`, `### The Fix`.
-- **No links in the body.** Focus on technical value only.
-- Pick the subreddit from the allowed list you are given.
+- Project showcase & humble post-mortem with headers: `### The Bottleneck`, `### What Failed`, `### The Fix`.
+- **No links in the body.** Focus on technical value and developer lessons.
+- Use default subreddits or suggest 2-3 tailored subreddits.
+
+### Facebook
+- Community project showcase post (100 to 250 words).
+- Friendly, approachable explanation of what you built, what it does, and why it's fun/useful with the link `{REPO_URL}`.
 
 ### LinkedIn
-- **150 to 250 words.** Clean line breaks.
-- Angle: problem breakdown, maintainability, reliability, what you learned.
-- At most 3 hashtags, all technical. You may use `{REPO_URL}` once.
+- **150 to 320 words.** Clean line breaks, max 4 hashtags.
+- Angle: Project & scope, engineering problem, solution, and key architecture/problem-solving takeaways.
 
 ### Discord
-- A short dev-log embed: a title and a body of 1500 characters or fewer.
-- Casual, like posting in a showcase channel.
+- Very simple, lightweight project showcase.
+- Casual announcement with clear bullet points of what it is, core features, and a link.
 
 ### GitHub
 - A README section with: **Why this exists**, **How it works**, **Technical trade-offs**.
-- Copy-paste ready markdown. No fake badges.
+- Direct auto-push or copy-paste ready markdown.
+
 
 ---
 

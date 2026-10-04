@@ -67,6 +67,10 @@ LINKEDIN_PERSON_URN = env("LINKEDIN_PERSON_URN")
 
 DISCORD_WEBHOOK_URL = env("DISCORD_WEBHOOK_URL")
 
+FACEBOOK_PAGE_ID = env("FACEBOOK_PAGE_ID")
+FACEBOOK_ACCESS_TOKEN = env("FACEBOOK_ACCESS_TOKEN")
+
+
 
 def load_persona():
     return json.loads((CONFIG_DIR / "persona.json").read_text(encoding="utf-8"))

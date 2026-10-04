@@ -21,6 +21,8 @@ build/
 storage/*.sqlite
 storage/*.sqlite-journal
 storage/profile_README.md
+storage/drafts/
+
 
 # Graphify & Editor Artifacts
 graphify-out/

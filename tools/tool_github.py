@@ -38,7 +38,7 @@ def list_repos(limit=40):
     return out
 
 
-def inspect_repo(name):
+def inspect_repo(name, commit_count=10):
     """Collects the facts the stylist is allowed to use."""
     full = _full_name(name)
     gh = _gh()
@@ -56,20 +56,35 @@ def inspect_repo(name):
         pass
 
     files = []
+    images = []
     try:
-        files = [c.path + ("/" if c.type == "dir" else "") for c in repo.get_contents("")][:60]
+        for c in repo.get_contents("")[:60]:
+            path_str = c.path + ("/" if c.type == "dir" else "")
+            files.append(path_str)
+            if c.type != "dir":
+                ext = c.name.lower().split(".")[-1]
+                if ext in ("png", "jpg", "jpeg", "gif", "svg", "webp"):
+                    images.append({"name": c.name, "path": c.path, "url": c.download_url or f"https://raw.githubusercontent.com/{full}/HEAD/{c.path}"})
     except GithubException:
         pass
 
+    # Also detect images linked in README markdown
+    import re
+    md_images = re.findall(r'!\[([^\]]*)\]\(([^)]+)\)', readme)
+    for alt, img_path in md_images:
+        if not any(i["path"] == img_path for i in images):
+            images.append({"name": alt or img_path.split("/")[-1], "path": img_path, "url": img_path if img_path.startswith("http") else f"https://raw.githubusercontent.com/{full}/HEAD/{img_path.lstrip('/')}"})
+
     commits = []
     try:
-        for i, c in enumerate(repo.get_commits()[:10]):
+        count = max(1, min(int(commit_count), 50))
+        for i, c in enumerate(repo.get_commits()[:count]):
             entry = {
                 "sha": c.sha[:7],
                 "date": c.commit.author.date.strftime("%Y-%m-%d"),
                 "message": c.commit.message.splitlines()[0],
             }
-            if i < 3:  # diffs only for the 3 newest commits
+            if i < 5:  # diffs for up to 5 newest commits
                 try:
                     entry["changed"] = [
                         {"file": f.filename, "patch": (f.patch or "")[:800]} for f in list(c.files)[:5]
@@ -105,6 +120,7 @@ def inspect_repo(name):
         "last_push": repo.pushed_at.strftime("%Y-%m-%d") if repo.pushed_at else "",
         "readme": readme,
         "files": files,
+        "images": images,
         "recent_commits": commits,
         "closed_issues": issues,
     }

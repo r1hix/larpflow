@@ -53,12 +53,31 @@ def make_profile_readme():
 
 # ---------- Agent 4: dispatch ----------
 
+import re
+from pathlib import Path
+
+def _find_image(repo):
+    short_repo = repo.split("/")[-1]
+    candidates = [
+        config.STORAGE_DIR / f"gameplay_{short_repo}.png",
+        config.STORAGE_DIR / f"{short_repo}.png",
+        config.STORAGE_DIR / "drafts" / f"{short_repo}.png",
+        Path.home() / f"Desktop/projects/RayLib-Games/{short_repo}/gameplay.png",
+    ]
+    for c in candidates:
+        if c.exists():
+            return str(c)
+    return None
+
 def _fill(text, url):
     return text.replace(drafts.PLACEHOLDER, url)
 
 
 def _post_x(d, url):
-    ids = tool_x.post_thread([_fill(t, url) for t in d.tweets])
+    repo = url.replace("https://github.com/", "")
+    img = _find_image(repo)
+    clean_tweets = [re.sub(r"\n*\(Visual:[^)]+\)", "", _fill(t, url)).strip() for t in d.tweets]
+    ids = tool_x.post_thread(clean_tweets, media_path=img)
     return ids[0], tool_x.thread_url(ids[0])
 
 
@@ -71,7 +90,9 @@ def _post_linkedin(d, url):
 
 
 def _post_discord(d, url):
-    return tool_discord.post(d.discord_title, d.discord_body, url)
+    repo = url.replace("https://github.com/", "")
+    img = _find_image(repo)
+    return tool_discord.post(d.discord_title, d.discord_body, url, media_path=img)
 
 
 def _post_github(d, url):

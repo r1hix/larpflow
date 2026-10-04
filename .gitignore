@@ -22,6 +22,12 @@ storage/*.sqlite
 storage/*.sqlite-journal
 storage/profile_README.md
 storage/drafts/
+storage/*.png
+storage/*.jpg
+storage/*.jpeg
+storage/*.webp
+storage/*.gif
+storage/*.mp4
 
 
 # Graphify & Editor Artifacts

@@ -17,15 +17,21 @@ def post_thread(tweets, media_path=None):
         access_token=config.X_ACCESS_TOKEN,
         access_token_secret=config.X_ACCESS_TOKEN_SECRET,
     )
-    media_ids = None
-    if media_path and Path(media_path).exists():
+    media_ids = []
+    paths = []
+    if media_path:
+        raw_paths = media_path if isinstance(media_path, list) else [p.strip() for p in str(media_path).split(",") if p.strip()]
+        paths = [Path(p) for p in raw_paths if Path(p).exists()]
+
+    if paths:
         try:
             auth = tweepy.OAuth1UserHandler(
                 config.X_API_KEY, config.X_API_SECRET, config.X_ACCESS_TOKEN, config.X_ACCESS_TOKEN_SECRET
             )
             api = tweepy.API(auth)
-            uploaded = api.media_upload(str(media_path))
-            media_ids = [uploaded.media_id]
+            for p in paths[:4]:
+                uploaded = api.media_upload(str(p))
+                media_ids.append(uploaded.media_id)
         except Exception as media_err:
             raise RuntimeError(f"Failed to upload media '{media_path}' to X: {media_err}") from media_err
 

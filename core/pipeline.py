@@ -62,8 +62,11 @@ from pathlib import Path
 
 def _find_image(repo, custom_media=None):
     """Dynamically locates screenshots or gameplay media for a repository across CWD and project paths."""
-    if custom_media and Path(custom_media).exists():
-        return str(Path(custom_media).resolve())
+    if custom_media:
+        raw_parts = [p.strip() for p in str(custom_media).split(",") if p.strip()]
+        valid_parts = [str(Path(p).resolve()) for p in raw_parts if Path(p).exists()]
+        if valid_parts:
+            return ",".join(valid_parts)
 
     short_repo = repo.split("/")[-1]
     image_names = [

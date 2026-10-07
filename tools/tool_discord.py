@@ -14,10 +14,12 @@ def post(title, body, url, media_path=None):
     """Sends an embed with optional image. Returns (message_id, "")."""
     payload = {"embeds": [{"title": title[:256], "description": body[:4000], "url": url, "color": 0x5865F2}]}
     
-    if media_path and Path(media_path).exists():
-        media_file = Path(media_path)
-        filename = media_file.name
-        ext = media_file.suffix.lower()
+    paths = []
+    if media_path:
+        raw_paths = media_path if isinstance(media_path, list) else [p.strip() for p in str(media_path).split(",") if p.strip()]
+        paths = [Path(p) for p in raw_paths if Path(p).exists()]
+
+    if paths:
         mime_map = {
             ".jpg": "image/jpeg",
             ".jpeg": "image/jpeg",
@@ -25,16 +27,31 @@ def post(title, body, url, media_path=None):
             ".gif": "image/gif",
             ".webp": "image/webp",
         }
-        mime_type = mime_map.get(ext, "image/png")
-        payload["embeds"][0]["image"] = {"url": f"attachment://{filename}"}
-        with open(media_file, "rb") as f:
+        files = {}
+        file_handles = []
+        try:
+            for i, media_file in enumerate(paths):
+                filename = media_file.name
+                ext = media_file.suffix.lower()
+                mime_type = mime_map.get(ext, "image/png")
+                fh = open(media_file, "rb")
+                file_handles.append(fh)
+                files[f"files[{i}]"] = (filename, fh, mime_type)
+                if i == 0:
+                    payload["embeds"][0]["image"] = {"url": f"attachment://{filename}"}
+                else:
+                    payload["embeds"].append({"url": url, "image": {"url": f"attachment://{filename}"}})
+
             resp = requests.post(
                 config.DISCORD_WEBHOOK_URL,
                 params={"wait": "true"},
                 data={"payload_json": json.dumps(payload)},
-                files={"files[0]": (filename, f, mime_type)},
+                files=files,
                 timeout=30,
             )
+        finally:
+            for fh in file_handles:
+                fh.close()
     else:
         resp = requests.post(config.DISCORD_WEBHOOK_URL, params={"wait": "true"}, json=payload, timeout=30)
 

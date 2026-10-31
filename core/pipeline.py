@@ -13,7 +13,7 @@ def parse_run_args(text):
     return parts
 
 
-def make_drafts(repo, problem="", solution="", commit_count=10, post_type="auto", media_path=""):
+def make_drafts(repo, problem="", solution="", commit_count=10, post_type="auto", media_path="", platforms=None):
     """Agent 1 + Agent 2. Returns (draft_id, repo_info, drafts)."""
     if tool_git.is_local_repo(repo):
         info = tool_git.inspect_local_repo(repo, commit_count=commit_count)
@@ -39,7 +39,7 @@ def make_drafts(repo, problem="", solution="", commit_count=10, post_type="auto"
             problem = f"Core architecture and challenges in {repo}"
             solution = f"Implementation details and trade-offs of {repo}"
 
-    d = drafts.generate(info, problem, solution, past, post_type=post_type)
+    d = drafts.generate(info, problem, solution, past, post_type=post_type, platforms=platforms)
     detected_img = media_path or _find_image(repo)
     if detected_img and (not d.visual_asset or not d.visual_asset.startswith("http")):
         d.visual_asset = str(detected_img)

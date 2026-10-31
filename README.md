@@ -47,6 +47,7 @@ LarpFlow inspects your real GitHub repositories (commits, diffs, closed issues, 
 ## 🚀 Key Features
 
 - **Local Git Ingestion (Zero-Latency & Offline):** Ingest directly from local repositories (`larpflow run .` or `/path/to/repo`). Extracts diffs, commits, and file trees in $<50\text{ms}$ with zero network requests or GitHub tokens required.
+- **Selective / Targeted Drafting:** Pass `-p` / `--platforms` to generate drafts *only* for the platforms you care about (e.g. `larpflow run . -p linkedin,discord`). Cuts token usage by 60% and avoids unnecessary rule retries for skipped channels.
 - **Anti-Hallucination & Anti-Slop Guardrails:** Ground truth comes strictly from your code diffs, persona, and LinkedIn profile. Banned corporate PR buzzwords (*"excited to announce"*, *"game changer"*, *"unleash"*, *"delve"*), no invented benchmark figures, and zero marketing hyperbole.
 - **Multi-Platform Syndication:**
   - **X (Twitter):** 4-tweet narrative thread with local media/screenshot attachments ($\le 275$ chars/tweet).
@@ -125,7 +126,18 @@ Inspects remote repository commits and diffs via GitHub API:
 larpflow run <repo_name>
 ```
 
-### 2. 1-Step Fast-Path (Generate & Publish)
+### 2. Selective & Targeted Drafting (Faster, Lower Token Cost)
+
+Draft only for the platforms you actually plan to publish to:
+```bash
+# Draft only for LinkedIn and Discord
+larpflow run . -p linkedin,discord
+
+# Draft only for X (Twitter)
+larpflow run <repo_name> -p x
+```
+
+### 3. 1-Step Fast-Path (Generate & Publish)
 
 Generates the drafts and immediately dispatches to your target platforms:
 

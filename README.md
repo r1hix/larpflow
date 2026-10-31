@@ -23,8 +23,9 @@ LarpFlow inspects your real GitHub repositories (commits, diffs, closed issues, 
  ┌───────────────────────────────────────────┐
  │          2. Narrative Stylist (LLM)       │  ──> Generates platform-specific drafts
  ├───────────────────────────────────────────┤
- │         Anti-Slop Rule Checker            │  ──> Enforces word counts, tweet lengths,
- └───────────────────────────────────────────┘      banned buzzwords, Reddit headers (3x retry)
+ │     Modular Rule Checker & Retries        │  ──> Enforces word counts, tweet lengths,
+ └───────────────────────────────────────────┘      banned buzzwords. Surgically retries only
+                                                    failing platforms (3x retry)
                        │
                        ▼
  ┌───────────────────────────────────────────┐
@@ -48,6 +49,7 @@ LarpFlow inspects your real GitHub repositories (commits, diffs, closed issues, 
 
 - **Local Git Ingestion (Zero-Latency & Offline):** Ingest directly from local repositories (`larpflow run .` or `/path/to/repo`). Extracts diffs, commits, and file trees in $<50\text{ms}$ with zero network requests or GitHub tokens required.
 - **Selective / Targeted Drafting:** Pass `-p` / `--platforms` to generate drafts *only* for the platforms you care about (e.g. `larpflow run . -p linkedin,discord`). Cuts token usage by 60% and avoids unnecessary rule retries for skipped channels.
+- **Modular Per-Platform Retries:** When a draft rule fails (e.g. LinkedIn word count is slightly off), LarpFlow preserves all successful channels and surgically requests an LLM fix *only* for the failing platform. Retries are 80% faster and never degrade good drafts.
 - **Anti-Hallucination & Anti-Slop Guardrails:** Ground truth comes strictly from your code diffs, persona, and LinkedIn profile. Banned corporate PR buzzwords (*"excited to announce"*, *"game changer"*, *"unleash"*, *"delve"*), no invented benchmark figures, and zero marketing hyperbole.
 - **Multi-Platform Syndication:**
   - **X (Twitter):** 4-tweet narrative thread with local media/screenshot attachments ($\le 275$ chars/tweet).

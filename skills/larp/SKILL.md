@@ -1,6 +1,6 @@
 ---
 name: larp
-description: Generate factual developer dev-logs, technical post-mortems, X threads, Reddit posts, and LinkedIn updates from GitHub repos and commit diffs using LarpFlow.
+description: Generate factual developer dev-logs, technical post-mortems, X threads, Reddit posts, and LinkedIn updates from GitHub repos and commit diffs using LarpFlow. Features local git ingestion, selective targeted drafting, and modular per-platform retries.
 ---
 
 # Larp (LarpFlow Dev-Log & Social Syndication Skill)

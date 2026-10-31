@@ -219,3 +219,4 @@ def inspect_local_repo(repo_arg, commit_count=10):
         "closed_issues": [],
         "local_path": str(repo_dir),
     }
+

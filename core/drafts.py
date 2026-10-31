@@ -70,59 +70,72 @@ def banned_phrases():
     return persona["developer"]["tone_guardrails"]["do_not_use"]
 
 
-def problems(d, platforms=None):
+def platform_problems(d, platforms=None):
+    """Categorizes validation errors by platform name."""
     target = normalize_platforms(platforms) or VALID_PLATFORMS
-    out = []
+    by_platform = {}
 
+    def add_issue(platform, issue):
+        by_platform.setdefault(platform, []).append(issue)
+
+    # 1. X (Twitter)
     if "x" in target:
         if not d.tweets:
-            out.append("tweets list is missing")
+            add_issue("x", "tweets list is missing")
         else:
-            out.extend(tweet_problems(d.tweets))
+            for p in tweet_problems(d.tweets):
+                add_issue("x", p)
 
+    # 2. LinkedIn
     if "linkedin" in target:
         words = len(d.linkedin.split())
         if not 140 <= words <= 350:
-            out.append(f"linkedin post is {words} words (need 140 to 350)")
+            add_issue("linkedin", f"linkedin post is {words} words (need 140 to 350)")
         if len(re.findall(r"#\w+", d.linkedin)) > 4:
-            out.append("linkedin has more than 4 hashtags")
+            add_issue("linkedin", "linkedin has more than 4 hashtags")
 
+    # 3. Reddit
     if "reddit" in target:
         for header in REDDIT_HEADERS:
             if header not in d.reddit_body:
-                out.append(f"reddit body is missing the header '{header}'")
+                add_issue("reddit", f"reddit body is missing the header '{header}'")
         if re.search(r"https?://|www\.", d.reddit_body, flags=re.I):
-            out.append("reddit body must not contain links")
+            add_issue("reddit", "reddit body must not contain links")
         if len(d.reddit_title) > 300:
-            out.append("reddit title is longer than 300 characters")
+            add_issue("reddit", "reddit title is longer than 300 characters")
         allowed = [s.lower() for s in config.REDDIT_ALLOWED_SUBS]
         if d.reddit_subreddit.lower() not in allowed:
-            out.append(f"subreddit must be one of {config.REDDIT_ALLOWED_SUBS}")
+            add_issue("reddit", f"subreddit must be one of {config.REDDIT_ALLOWED_SUBS}")
 
+    # 4. Discord
     if "discord" in target:
         if len(d.discord_body) > 1500:
-            out.append("discord body is longer than 1500 characters")
+            add_issue("discord", "discord body is longer than 1500 characters")
 
-    # Banned phrases check across active platform contents
-    texts = []
-    if "x" in target and d.tweets:
-        texts.extend(d.tweets)
-    if "linkedin" in target and d.linkedin:
-        texts.append(d.linkedin)
-    if "reddit" in target and d.reddit_body:
-        texts.extend([d.reddit_title, d.reddit_body])
-    if "discord" in target and d.discord_body:
-        texts.extend([d.discord_title, d.discord_body])
-    if "facebook" in target and d.facebook:
-        texts.append(d.facebook)
-    if "github" in target and d.github_readme_section:
-        texts.append(d.github_readme_section)
+    # 5. Check tone guardrails / banned phrases per platform
+    banned = banned_phrases()
+    if banned:
+        platform_texts = {
+            "x": " ".join(d.tweets).lower() if d.tweets else "",
+            "linkedin": d.linkedin.lower() if d.linkedin else "",
+            "reddit": f"{d.reddit_title} {d.reddit_body}".lower() if d.reddit_body else "",
+            "discord": f"{d.discord_title} {d.discord_body}".lower() if d.discord_body else "",
+            "facebook": d.facebook.lower() if d.facebook else "",
+            "github": d.github_readme_section.lower() if d.github_readme_section else "",
+        }
+        for plat, text in platform_texts.items():
+            if plat in target and text:
+                for phrase in banned:
+                    if phrase.lower() in text:
+                        add_issue(plat, f"remove the banned phrase '{phrase}'")
 
-    blob = " ".join(texts).lower()
-    for phrase in banned_phrases():
-        if phrase.lower() in blob:
-            out.append(f"remove the phrase '{phrase}'")
-    return out
+    return by_platform
+
+
+def problems(d, platforms=None):
+    """Returns a flat list of issues across all target platforms."""
+    by_plat = platform_problems(d, platforms=platforms)
+    return [issue for issues in by_plat.values() for issue in issues]
 
 
 # ---------- prompts ----------
@@ -214,25 +227,94 @@ Do not invent numbers. If something was not measured, say so."""
 
 # ---------- generators ----------
 
+def build_retry_prompt(d, failed_platforms, issues_by_platform, info, problem, solution, post_type="auto"):
+    """Constructs a targeted prompt to rewrite only the failing platform drafts."""
+    issue_lines = []
+    for plat in sorted(failed_platforms):
+        issue_lines.append(f"Platform [{plat}] failed with:")
+        for iss in issues_by_platform.get(plat, []):
+            issue_lines.append(f"  - {iss}")
+
+    key_descriptions = []
+    if "x" in failed_platforms:
+        key_descriptions.append(f'- "tweets": list of exactly 4 strings, each 275 characters or fewer. Tweet 4 contains {PLACEHOLDER}.')
+    if "reddit" in failed_platforms:
+        key_descriptions.extend([
+            '- "reddit_subreddit": one primary name from allowed list or best matching subreddit, no "r/".',
+            '- "reddit_title": a plain, honest title matching the requested narrative focus.',
+            '- "reddit_body": markdown with headers "### The Bottleneck", "### What Failed", "### The Fix". No links.',
+        ])
+    if "linkedin" in failed_platforms:
+        key_descriptions.append(f'- "linkedin": 150 to 320 words, max 4 hashtags. Structure: Project & scope, bottleneck, engineering solution, takeaways. May contain {PLACEHOLDER} once.')
+    if "facebook" in failed_platforms:
+        key_descriptions.append(f'- "facebook": 100 to 250 words community showcase post with clean paragraphs and {PLACEHOLDER}.')
+    if "discord" in failed_platforms:
+        key_descriptions.extend([
+            '- "discord_title": short.',
+            '- "discord_body": 1500 characters or fewer. Simple, casual project showcase.',
+        ])
+    if "github" in failed_platforms:
+        key_descriptions.append('- "github_readme_section": markdown with "Why this exists", "How it works", "Technical trade-offs".')
+
+    issues_str = "\n".join(issue_lines)
+    keys_str = "\n".join(key_descriptions)
+
+    return f"""The previous generation succeeded for other channels, but failed rules for: {', '.join(failed_platforms)}.
+
+VALIDATION FAILURES TO FIX:
+{issues_str}
+
+CONTEXT:
+Repository: {info.get('full_name')}
+Problem: {problem}
+Solution: {solution}
+
+Please regenerate ONLY the failing platform field(s). Keep all rule constraints strictly intact.
+Return ONLY one JSON object containing the corrected keys:
+{keys_str}"""
+
+
 def generate(info, problem, solution, past_text="", post_type="auto", platforms=None):
     system = build_system_prompt()
     user = build_user_prompt(info, problem, solution, past_text, post_type=post_type, platforms=platforms)
-    issues = []
-    for _ in range(3):
-        prompt = user
-        if issues:
-            prompt += "\n\nYour last answer broke these rules. Fix them and send the full JSON again:\n- " + "\n- ".join(issues)
-        raw = llm.chat(system, prompt, json_mode=True)
+
+    # 1. Initial complete generation pass
+    raw = llm.chat(system, user, json_mode=True)
+    try:
+        d = Drafts(**llm.parse_json(raw))
+    except Exception:
+        # If initial JSON parsing fails, retry once with explicit syntax nudge
+        raw = llm.chat(system, user + "\n\nYour previous response was not valid JSON. Return valid JSON only.", json_mode=True)
+        d = Drafts(**llm.parse_json(raw))
+
+    d.reddit_subreddit = d.reddit_subreddit.replace("r/", "").strip()
+    by_plat = platform_problems(d, platforms=platforms)
+    if not by_plat:
+        return d
+
+    # 2. Modular per-platform retries (surgically fixing only broken fields)
+    for retry in range(3):
+        failed_plats = list(by_plat.keys())
+        retry_prompt = build_retry_prompt(d, failed_plats, by_plat, info, problem, solution, post_type=post_type)
+        raw_fix = llm.chat(system, retry_prompt, json_mode=True)
+
         try:
-            d = Drafts(**llm.parse_json(raw))
-        except ValueError as e:  # bad JSON or missing keys
-            issues = [f"the answer was not valid: {e}"]
-            continue
-        d.reddit_subreddit = d.reddit_subreddit.replace("r/", "").strip()
-        issues = problems(d, platforms=platforms)
-        if not issues:
+            fix_json = llm.parse_json(raw_fix)
+            # Surgically patch only the failing platform fields into d
+            for key, val in fix_json.items():
+                if hasattr(d, key) and val:
+                    if key == "reddit_subreddit":
+                        val = str(val).replace("r/", "").strip()
+                    setattr(d, key, val)
+        except Exception:
+            pass
+
+        by_plat = platform_problems(d, platforms=platforms)
+        if not by_plat:
             return d
-    raise ValueError("The model kept breaking the rules: " + "; ".join(issues))
+
+    flat_issues = [issue for issues in by_plat.values() for issue in issues]
+    raise ValueError("The model kept breaking the rules on platforms (" + ", ".join(by_plat.keys()) + "): " + "; ".join(flat_issues))
 
 
 def generate_profile_readme(repos):

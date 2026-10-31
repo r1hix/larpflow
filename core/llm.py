@@ -10,7 +10,10 @@ from . import config
 def _client():
     if not config.LLM_API_KEY:
         raise RuntimeError("LLM_API_KEY is empty. Put it in .env first.")
-    kwargs = {"api_key": config.LLM_API_KEY}
+    kwargs = {
+        "api_key": config.LLM_API_KEY,
+        "timeout": config.LLM_TIMEOUT,
+    }
     if config.LLM_BASE_URL:
         kwargs["base_url"] = config.LLM_BASE_URL
     return OpenAI(**kwargs)
@@ -36,6 +39,7 @@ def chat(system, user, json_mode=False, temperature=0.7):
         args = dict(
             model=model,
             temperature=temperature,
+            timeout=config.LLM_TIMEOUT,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},

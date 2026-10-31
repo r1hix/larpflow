@@ -30,6 +30,7 @@ DRY_RUN = env_bool("DRY_RUN", True)
 LLM_API_KEY = env("LLM_API_KEY")
 LLM_BASE_URL = env("LLM_BASE_URL")
 LLM_MODEL = env("LLM_MODEL", "gpt-4o-mini")
+LLM_TIMEOUT = float(env("LLM_TIMEOUT", "30.0"))
 
 GITHUB_USER = env("GITHUB_USER", "r1hix")
 GITHUB_TOKEN = env("GITHUB_TOKEN")

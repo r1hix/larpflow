@@ -64,14 +64,33 @@ def cmd_run(args):
     draft_file.write_text(preview_text, encoding="utf-8")
     print(f"\nSaved draft to {draft_file}")
 
-    try:
-        import subprocess
-        subprocess.run(["open", str(draft_file)], check=False)
-        print(f"Opened {draft_file.name} in your editor.")
-    except Exception:
-        pass
+    if not getattr(args, "no_open", False) and sys.stdin.isatty():
+        try:
+            import subprocess
+            subprocess.run(["open", str(draft_file)], check=False)
+            print(f"Opened {draft_file.name} in your editor.")
+        except Exception:
+            pass
 
-    print(f"\nTo post it: larpflow send {draft_id} --yes (or: python -m core.cli send {draft_id})")
+    if getattr(args, "publish", False):
+        mode = "DRY RUN" if config.DRY_RUN else "LIVE (posts for real)"
+        platforms = [p.strip() for p in args.platforms.split(",")] if args.platforms else None
+        target_str = f"to {args.platforms}" if args.platforms else "to all platforms"
+
+        if not args.yes:
+            if not sys.stdin.isatty():
+                print(f"[Non-interactive session: auto-confirming publish for draft #{draft_id}]")
+                args.yes = True
+            else:
+                answer = input(f"\nPublish draft #{draft_id} for {repo} {target_str} in {mode} mode? Type yes: ")
+                if answer.strip().lower() != "yes":
+                    print("Publishing cancelled. Draft saved.")
+                    return
+
+        print(f"\nDispatching draft #{draft_id} {target_str} in {mode} mode...")
+        print(pipeline.format_audit(pipeline.dispatch(draft_id, target_platforms=platforms, media_path=media)))
+    else:
+        print(f"\nTo post it: larpflow send {draft_id} --yes (or: python -m core.cli send {draft_id})")
 
 
 
@@ -100,12 +119,15 @@ def cmd_send(args):
     media = args.image or ""
     
     if not args.yes:
-        answer = input(f"Send draft #{args.draft_id} for {row['repo']} {target_str} in {mode} mode? Type yes: ")
-        if answer.strip().lower() != "yes":
-            raise SystemExit("Cancelled.")
-    else:
-        print(f"Sending draft #{args.draft_id} {target_str} in {mode} mode...")
+        if not sys.stdin.isatty():
+            print(f"[Non-interactive session: auto-confirming send for draft #{args.draft_id}]")
+            args.yes = True
+        else:
+            answer = input(f"Send draft #{args.draft_id} for {row['repo']} {target_str} in {mode} mode? Type yes: ")
+            if answer.strip().lower() != "yes":
+                raise SystemExit("Cancelled.")
 
+    print(f"Sending draft #{args.draft_id} {target_str} in {mode} mode...")
     print(pipeline.format_audit(pipeline.dispatch(args.draft_id, target_platforms=platforms, media_path=media)))
 
 
@@ -142,6 +164,10 @@ def main():
     run.add_argument("--problem", help="custom motivation, problem, or bottleneck context", default="")
     run.add_argument("--solution", help="custom fix, architectural solution, or takeaways", default="")
     run.add_argument("--image", "-i", default="", help="custom image path for media attachments (e.g. screenshot or gameplay)")
+    run.add_argument("--publish", "--send", dest="publish", action="store_true", help="immediately dispatch/publish the draft upon generation")
+    run.add_argument("--platforms", "-p", default="", help="target platforms for publishing (e.g. 'linkedin,discord')")
+    run.add_argument("--yes", "-y", action="store_true", help="skip confirmation prompt when publishing")
+    run.add_argument("--no-open", action="store_true", help="do not auto-open the draft in editor")
     run.set_defaults(fn=cmd_run)
 
 

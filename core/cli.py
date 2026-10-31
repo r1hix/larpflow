@@ -45,7 +45,9 @@ def cmd_run(args):
     solution = args.solution or raw_sol
     media = args.image or ""
 
-    print(f"Working... (inspecting GitHub '{repo}' with {args.commits} commits, type='{args.type}')...")
+    target_plats = args.platforms or None
+    plat_desc = f", platforms='{args.platforms}'" if args.platforms else ""
+    print(f"Working... (inspecting '{repo}' with {args.commits} commits, type='{args.type}'{plat_desc})...")
     draft_id, info, d = pipeline.make_drafts(
         repo,
         problem=problem,
@@ -53,8 +55,9 @@ def cmd_run(args):
         commit_count=args.commits,
         post_type=args.type,
         media_path=media,
+        platforms=target_plats,
     )
-    preview_text = drafts.render_preview(draft_id, info["full_name"], d)
+    preview_text = drafts.render_preview(draft_id, info["full_name"], d, platforms=target_plats)
     print(preview_text)
 
     # Auto-export draft as an editable Markdown file and open it in the editor

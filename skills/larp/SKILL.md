@@ -40,6 +40,12 @@ larpflow run ../my-project
 larpflow run <repo_name>
 ```
 
+**Selective Drafting (Targeted Platforms):**
+```bash
+larpflow run . -p linkedin,discord
+larpflow run <repo_name> -p x
+```
+
 **One-Step Draft & Publish:**
 ```bash
 larpflow run <repo_name> --publish -p linkedin,discord --yes

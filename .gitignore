@@ -20,6 +20,7 @@ build/
 # Local Database & Storage
 storage/*.sqlite
 storage/*.sqlite-journal
+storage/*.db
 storage/profile_README.md
 storage/drafts/
 storage/*.png

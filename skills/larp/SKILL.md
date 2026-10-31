@@ -26,9 +26,16 @@ larpflow repos
 ```
 
 ### 2. Generate Drafts for a Repository
-Run LarpFlow on any repo with optional narrative type, commit depth, manual problem/solution, or custom media image:
+Run LarpFlow on any GitHub repo name, local directory (`.`), or absolute/relative path with optional narrative type, commit depth, manual problem/solution, or custom media image:
 
-**Auto-infer mode (Zero-prompt):**
+**Local Git Repo (Zero Network Latency & Offline):**
+```bash
+larpflow run .
+# or relative path:
+larpflow run ../my-project
+```
+
+**Remote GitHub Repo (Auto-infer mode):**
 ```bash
 larpflow run <repo_name>
 ```

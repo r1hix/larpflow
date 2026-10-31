@@ -128,7 +128,9 @@ def _post_reddit(d, url, media_path=None):
 
 
 def _post_linkedin(d, url, media_path=None):
-    return tool_linkedin.post(_clean_text(d.linkedin, url))
+    repo = url.replace('https://github.com/', '')
+    img = media_path or _find_image(repo, getattr(d, 'visual_asset', None))
+    return tool_linkedin.post(_clean_text(d.linkedin, url), media_path=img)
 
 
 def _post_discord(d, url, media_path=None):
@@ -170,7 +172,7 @@ def dispatch(draft_id, target_platforms=None, media_path=None):
         raise ValueError(f"Draft {draft_id} is already {row['status']}.")
 
     d = drafts.Drafts(**row["drafts"])
-    url = f"https://github.com/{row['repo']}"
+    url = row["repo"] if row["repo"].startswith("http") else f"https://github.com/{row['repo']}"
     done = db.posted_platforms(draft_id)
     results = []
 

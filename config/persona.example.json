@@ -1,0 +1,51 @@
+{
+  "developer": {
+    "name": "Your Name",
+    "handle": "yourhandle",
+    "github_url": "https://github.com/yourhandle",
+    "twitter_handle": "yourhandle",
+    "twitter_url": "https://x.com/yourhandle",
+    "reddit_username": "your_reddit_user",
+    "reddit_url": "https://www.reddit.com/user/your_reddit_user/",
+    "discord_handle": "yourhandle",
+    "linkedin_slug": "yourhandle",
+    "linkedin_url": "https://www.linkedin.com/in/yourhandle/",
+    "studies": "Software Engineer / CS Student / Builder",
+    "primary_stacks": [
+      "Python (FastAPI, PyTorch, asyncio)",
+      "TypeScript / React / Next.js",
+      "Systems (Rust / C / Go)",
+      "Cloud & Databases (PostgreSQL, Redis, Docker)"
+    ],
+    "interests": "minimalist software, developer tools, distributed systems, open-source performance",
+    "never_claim": [
+      "benchmark numbers that are not in the repo data",
+      "user counts, stars or downloads that are not in the repo data",
+      "work experience that is not in the LinkedIn profile text"
+    ],
+    "tone_guardrails": {
+      "do_not_use": [
+        "In today's fast-paced world",
+        "thrilled to share",
+        "excited to announce",
+        "game changer",
+        "unleashing the power",
+        "unleash",
+        "revolutionary",
+        "revolutionizing",
+        "delve",
+        "delving",
+        "let's dive in",
+        "dive into",
+        "it's crucial to",
+        "fast-forward to",
+        "a testament to",
+        "navigating the",
+        "seamlessly",
+        "tapestry",
+        "fosters"
+      ],
+      "preferred_style": "direct, technically concrete, analytical, slightly witty, builder-centric, raw developer voice"
+    }
+  }
+}

@@ -32,16 +32,23 @@ LLM_BASE_URL = env("LLM_BASE_URL")
 LLM_MODEL = env("LLM_MODEL", "gpt-4o-mini")
 LLM_TIMEOUT = float(env("LLM_TIMEOUT", "30.0"))
 
-GITHUB_USER = env("GITHUB_USER", "r1hix")
+GITHUB_USER = env("GITHUB_USER")
 GITHUB_TOKEN = env("GITHUB_TOKEN")
-if not GITHUB_TOKEN:
+if not GITHUB_TOKEN or not GITHUB_USER:
     try:
         import subprocess
-        res = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=2)
-        if res.returncode == 0 and res.stdout.strip():
-            GITHUB_TOKEN = res.stdout.strip()
+        if not GITHUB_TOKEN:
+            res_token = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=2)
+            if res_token.returncode == 0 and res_token.stdout.strip():
+                GITHUB_TOKEN = res_token.stdout.strip()
+        if not GITHUB_USER:
+            res_user = subprocess.run(["gh", "api", "user", "--jq", ".login"], capture_output=True, text=True, timeout=2)
+            if res_user.returncode == 0 and res_user.stdout.strip():
+                GITHUB_USER = res_user.stdout.strip()
     except Exception:
         pass
+if not GITHUB_USER:
+    GITHUB_USER = "user"
 
 
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
@@ -74,7 +81,12 @@ FACEBOOK_ACCESS_TOKEN = env("FACEBOOK_ACCESS_TOKEN")
 
 
 def load_persona():
-    return json.loads((CONFIG_DIR / "persona.json").read_text(encoding="utf-8"))
+    path = CONFIG_DIR / "persona.json"
+    if not path.exists():
+        path = CONFIG_DIR / "persona.example.json"
+    if not path.exists():
+        return {"developer": {"tone_guardrails": {"do_not_use": []}}}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def load_system_prompt():
@@ -82,12 +94,15 @@ def load_system_prompt():
 
 
 def load_linkedin_profile():
-    """Returns the pasted LinkedIn text, or "" if the file is still empty."""
+    """Returns the pasted LinkedIn text, or fallback example if available."""
     path = CONFIG_DIR / "linkedin_profile.md"
+    if not path.exists():
+        path = CONFIG_DIR / "linkedin_profile.example.md"
     if not path.exists():
         return ""
     text = re.sub(r"<!--.*?-->", "", path.read_text(encoding="utf-8"), flags=re.S)
     body = "\n".join(
         line for line in text.splitlines() if line.strip() and not line.startswith("#")
     )
+    return text.strip() if body.strip() else ""
     return text.strip() if body.strip() else ""

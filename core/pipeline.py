@@ -89,8 +89,10 @@ def _find_image(repo, custom_media=None):
         Path.cwd() / "docs",
         config.STORAGE_DIR,
         config.STORAGE_DIR / "drafts",
-        Path.home() / "Desktop" / "projects" / "RayLib-Games" / short_repo,
-        Path.home() / "Desktop" / "projects" / short_repo,
+        Path.cwd().parent / short_repo,
+        Path.cwd().parent / short_repo / "assets",
+        Path.cwd().parent / short_repo / "images",
+        Path.cwd().parent / short_repo / "docs",
     ]
 
     for d in search_dirs:

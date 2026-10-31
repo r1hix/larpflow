@@ -14,3 +14,4 @@ Passionate software engineer building high-performance systems, developer toolin
 
 ## Focus & Style
 Direct, builder-centric, analytical, and hands-on. Focused on explaining technical bottlenecks, bugs encountered, architecture trade-offs, and practical code solutions rather than fluffy marketing talk.
+

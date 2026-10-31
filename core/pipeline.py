@@ -1,6 +1,6 @@
 """The flow: ingest -> draft -> (human approves) -> dispatch. Used by the bot and the CLI."""
 from . import config, db, drafts
-from tools import tool_discord, tool_facebook, tool_github, tool_linkedin, tool_reddit, tool_x
+from tools import tool_discord, tool_facebook, tool_git, tool_github, tool_linkedin, tool_reddit, tool_x
 
 
 
@@ -15,7 +15,11 @@ def parse_run_args(text):
 
 def make_drafts(repo, problem="", solution="", commit_count=10, post_type="auto", media_path=""):
     """Agent 1 + Agent 2. Returns (draft_id, repo_info, drafts)."""
-    info = tool_github.inspect_repo(repo, commit_count=commit_count)
+    if tool_git.is_local_repo(repo):
+        info = tool_git.inspect_local_repo(repo, commit_count=commit_count)
+    else:
+        info = tool_github.inspect_repo(repo, commit_count=commit_count)
+
     past = db.past_for_repo(info["full_name"])
 
     # If problem/solution are omitted, infer them from the latest commit & diff
@@ -94,6 +98,15 @@ def _find_image(repo, custom_media=None):
         Path.cwd().parent / short_repo / "images",
         Path.cwd().parent / short_repo / "docs",
     ]
+
+    local_dir = tool_git.resolve_repo_path(repo)
+    if local_dir:
+        search_dirs.extend([
+            local_dir,
+            local_dir / "assets",
+            local_dir / "images",
+            local_dir / "docs",
+        ])
 
     for d in search_dirs:
         if not d.exists():

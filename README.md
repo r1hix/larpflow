@@ -46,6 +46,7 @@ LarpFlow inspects your real GitHub repositories (commits, diffs, closed issues, 
 
 ## 🚀 Key Features
 
+- **Local Git Ingestion (Zero-Latency & Offline):** Ingest directly from local repositories (`larpflow run .` or `/path/to/repo`). Extracts diffs, commits, and file trees in $<50\text{ms}$ with zero network requests or GitHub tokens required.
 - **Anti-Hallucination & Anti-Slop Guardrails:** Ground truth comes strictly from your code diffs, persona, and LinkedIn profile. Banned corporate PR buzzwords (*"excited to announce"*, *"game changer"*, *"unleash"*, *"delve"*), no invented benchmark figures, and zero marketing hyperbole.
 - **Multi-Platform Syndication:**
   - **X (Twitter):** 4-tweet narrative thread with local media/screenshot attachments ($\le 275$ chars/tweet).
@@ -104,10 +105,22 @@ larpflow doctor
 
 ## 🛠️ CLI Usage
 
-### 1. Generate Drafts (Auto-Infer from Commits)
+### 1. Generate Drafts (Local or Remote)
 
-Inspects the repository's latest commits and diffs to infer the problem and fix:
+**Local Git Repository (Zero Latency & Offline):**
+Inspects local git history, diffs, and files instantly with zero network calls:
+```bash
+# Ingest current directory
+larpflow run .
 
+# Ingest any local project directory
+larpflow run /path/to/my-project
+# or relative path:
+larpflow run ../my-project
+```
+
+**Remote GitHub Repository (Auto-Infer from Commits):**
+Inspects remote repository commits and diffs via GitHub API:
 ```bash
 larpflow run <repo_name>
 ```
